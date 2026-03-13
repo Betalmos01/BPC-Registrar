@@ -1,0 +1,131 @@
+CREATE DATABASE IF NOT EXISTS bpc_registrar;
+USE bpc_registrar;
+
+CREATE TABLE roles (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(50) NOT NULL UNIQUE
+);
+
+CREATE TABLE users (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  role_id INT NOT NULL,
+  username VARCHAR(50) NOT NULL UNIQUE,
+  password_hash VARCHAR(255) NOT NULL,
+  first_name VARCHAR(100) NOT NULL,
+  last_name VARCHAR(100) NOT NULL,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (role_id) REFERENCES roles(id)
+);
+
+CREATE TABLE students (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  student_no VARCHAR(50) NOT NULL UNIQUE,
+  first_name VARCHAR(100) NOT NULL,
+  last_name VARCHAR(100) NOT NULL,
+  program VARCHAR(120) DEFAULT '',
+  year_level VARCHAR(20) DEFAULT '',
+  status VARCHAR(20) DEFAULT 'Active',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE instructors (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  employee_no VARCHAR(50) NOT NULL UNIQUE,
+  first_name VARCHAR(100) NOT NULL,
+  last_name VARCHAR(100) NOT NULL,
+  department VARCHAR(120) DEFAULT '',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE classes (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  class_code VARCHAR(50) NOT NULL UNIQUE,
+  title VARCHAR(150) NOT NULL,
+  units INT NOT NULL DEFAULT 3,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE schedules (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  class_id INT NOT NULL,
+  day VARCHAR(50) DEFAULT '',
+  time VARCHAR(80) DEFAULT '',
+  room VARCHAR(60) DEFAULT '',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE
+);
+
+CREATE TABLE enrollments (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  student_id INT NOT NULL,
+  class_id INT NOT NULL,
+  status VARCHAR(20) DEFAULT 'Enrolled',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+  FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE
+);
+
+CREATE TABLE grades (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  student_id INT NOT NULL,
+  class_id INT NOT NULL,
+  grade VARCHAR(20) NOT NULL,
+  remarks VARCHAR(120) DEFAULT '',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+  FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE
+);
+
+CREATE TABLE documents (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  student_id INT NOT NULL,
+  doc_type VARCHAR(120) NOT NULL,
+  status VARCHAR(20) DEFAULT 'Pending',
+  requested_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  completed_at DATETIME NULL,
+  FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
+);
+
+CREATE TABLE reports (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  title VARCHAR(150) NOT NULL,
+  department VARCHAR(120) NOT NULL,
+  status VARCHAR(20) DEFAULT 'Pending',
+  due_date DATE NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE academic_reports (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  title VARCHAR(150) NOT NULL,
+  coverage VARCHAR(120) NOT NULL,
+  status VARCHAR(20) DEFAULT 'Draft',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE audit_logs (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NULL,
+  action VARCHAR(100) NOT NULL,
+  module VARCHAR(120) NOT NULL,
+  details VARCHAR(255) DEFAULT '',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE TABLE notifications (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  title VARCHAR(150) NOT NULL,
+  message VARCHAR(255) NOT NULL,
+  status VARCHAR(20) DEFAULT 'Unread',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT IGNORE INTO roles (name) VALUES ('Administrator'), ('Registrar Staff');
+
+INSERT IGNORE INTO users (role_id, username, password_hash, first_name, last_name, is_active)
+VALUES
+  ((SELECT id FROM roles WHERE name = 'Administrator'), 'adminaccount@gmail.com', '$2y$10$tB00KeauThyVvcbvDRqHoeA3BO8aPPCMm.B/WxnqzOhKtns1uHl7O', 'Admin', 'Account', 1),
+  ((SELECT id FROM roles WHERE name = 'Registrar Staff'), 'staffaccount@gmail.com', '$2y$10$tB00KeauThyVvcbvDRqHoeA3BO8aPPCMm.B/WxnqzOhKtns1uHl7O', 'Staff', 'Account', 1);
+

@@ -19,3 +19,4 @@ $initials = $user ? strtoupper(substr($user['first_name'], 0, 1) . substr($user[
 </head>
 <body>
   <div class="app">
+    <div class="sidebar-overlay" data-sidebar-close></div>

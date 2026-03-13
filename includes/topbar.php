@@ -1,8 +1,12 @@
 <?php
 $flash = get_flash();
+$greetingName = $user ? trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? '')) : '';
 ?>
 <main class="content">
   <header class="topbar">
+    <button class="icon-btn sidebar-toggle" type="button" aria-label="Toggle sidebar" onclick="(function(){if(window.innerWidth<=900){document.body.classList.toggle('sidebar-open');document.body.classList.remove('sidebar-collapsed');}else{document.body.classList.toggle('sidebar-collapsed');document.body.classList.remove('sidebar-open');}})();">
+      <span class="burger" aria-hidden="true"></span>
+    </button>
     <form class="search" method="get">
       <span class="search-icon"></span>
       <input type="text" name="q" placeholder="Search records, IDs, names..." value="<?php echo e(request_value('q')); ?>" />
@@ -28,6 +32,13 @@ $flash = get_flash();
       </div>
     </div>
   </header>
+
+  <section class="page-header">
+    <div>
+      <div class="page-title"><?php echo e($pageTitle); ?></div>
+      <div class="page-sub"><?php echo $greetingName ? 'Welcome back, ' . e($greetingName) . '.' : 'Welcome back.'; ?></div>
+    </div>
+  </section>
 
   <?php if ($flash): ?>
     <div class="alert <?php echo e($flash['type']); ?>">

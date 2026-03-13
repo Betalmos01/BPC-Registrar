@@ -42,6 +42,7 @@ CREATE TABLE classes (
   id INT AUTO_INCREMENT PRIMARY KEY,
   class_code VARCHAR(50) NOT NULL UNIQUE,
   title VARCHAR(150) NOT NULL,
+  course VARCHAR(120) DEFAULT '',
   units INT NOT NULL DEFAULT 3,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -128,4 +129,5 @@ INSERT IGNORE INTO users (role_id, username, password_hash, first_name, last_nam
 VALUES
   ((SELECT id FROM roles WHERE name = 'Administrator'), 'adminaccount@gmail.com', '$2y$10$tB00KeauThyVvcbvDRqHoeA3BO8aPPCMm.B/WxnqzOhKtns1uHl7O', 'Admin', 'Account', 1),
   ((SELECT id FROM roles WHERE name = 'Registrar Staff'), 'staffaccount@gmail.com', '$2y$10$tB00KeauThyVvcbvDRqHoeA3BO8aPPCMm.B/WxnqzOhKtns1uHl7O', 'Staff', 'Account', 1);
+
 

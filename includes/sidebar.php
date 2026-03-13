@@ -1,33 +1,47 @@
 <?php
-$nav = [
-    'Dashboard' => [
-        ['label' => 'Dashboard', 'href' => $roleLabel === 'Administrator' ? BASE_URL . '/admin/dashboard.php' : BASE_URL . '/staff/dashboard.php'],
-    ],
-    'Student Services' => [
-        ['label' => 'Student Management', 'href' => BASE_URL . '/staff/students.php'],
-        ['label' => 'Enrollment', 'href' => BASE_URL . '/staff/enrollments.php'],
-        ['label' => 'Class Schedules', 'href' => BASE_URL . '/staff/schedules.php'],
-        ['label' => 'Document Requests', 'href' => BASE_URL . '/staff/documents.php'],
-    ],
-    'Faculty / Instructors' => [
-        ['label' => 'Class Lists', 'href' => BASE_URL . '/staff/class_lists.php'],
-        ['label' => 'Grade Management', 'href' => BASE_URL . '/staff/grades.php'],
-    ],
-    'Registrar Staff' => [
-        ['label' => 'Manage Classes & Schedules', 'href' => BASE_URL . '/staff/classes.php'],
-        ['label' => 'Staff Directory', 'href' => BASE_URL . '/staff/staff_directory.php'],
-    ],
-    'Administration' => [
-        ['label' => 'Reports', 'href' => BASE_URL . '/admin/reports.php'],
-        ['label' => 'System Activity', 'href' => BASE_URL . '/admin/activity.php'],
+$isAdmin = strtolower($roleLabel) === 'administrator';
+
+$shorten = static function (string $label): string {
+    $label = preg_replace('/[^A-Za-z0-9 ]+/', '', $label);
+    $parts = preg_split('/\s+/', trim($label));
+    $initials = '';
+    foreach ($parts as $part) {
+        if ($part === '') {
+            continue;
+        }
+        $initials .= strtoupper(substr($part, 0, 1));
+        if (strlen($initials) >= 3) {
+            break;
+        }
+    }
+    return $initials ?: strtoupper(substr($label, 0, 2));
+};
+
+if ($isAdmin) {
+    $navItems = [
+        ['label' => 'Dashboard', 'href' => BASE_URL . '/admin/dashboard.php'],
+        ['label' => 'User Management', 'href' => BASE_URL . '/admin/users.php'],
+        ['label' => 'Student Records', 'href' => BASE_URL . '/staff/students.php', 'active' => 'Student Management'],
+        ['label' => 'Faculty / Instructor Management', 'href' => BASE_URL . '/staff/staff_directory.php', 'active' => 'Staff Directory'],
+        ['label' => 'Classes and Schedules', 'href' => BASE_URL . '/staff/classes.php', 'active' => 'Manage Classes & Schedules'],
+        ['label' => 'Enrollment Monitoring', 'href' => BASE_URL . '/staff/enrollments.php', 'active' => 'Enrollment'],
+        ['label' => 'Grade Records', 'href' => BASE_URL . '/staff/grades.php', 'active' => 'Grade Management'],
         ['label' => 'Academic Reports', 'href' => BASE_URL . '/admin/academic_reports.php'],
+        ['label' => 'System Logs', 'href' => BASE_URL . '/admin/activity.php', 'active' => 'System Activity'],
         ['label' => 'System Settings', 'href' => BASE_URL . '/admin/settings.php'],
-    ],
-    'System' => [
-        ['label' => 'Profile', 'href' => BASE_URL . '/profile.php'],
-        ['label' => 'Logout', 'href' => BASE_URL . '/auth/logout.php'],
-    ],
-];
+    ];
+} else {
+    $navItems = [
+        ['label' => 'Dashboard', 'href' => BASE_URL . '/staff/dashboard.php'],
+        ['label' => 'Student Management', 'href' => BASE_URL . '/staff/students.php'],
+        ['label' => 'Enroll Students', 'href' => BASE_URL . '/staff/enrollments.php', 'active' => 'Enrollment'],
+        ['label' => 'Class Lists', 'href' => BASE_URL . '/staff/class_lists.php'],
+        ['label' => 'Manage Classes and Schedules', 'href' => BASE_URL . '/staff/classes.php', 'active' => 'Manage Classes & Schedules'],
+        ['label' => 'Record Grades', 'href' => BASE_URL . '/staff/grades.php', 'active' => 'Grade Management'],
+        ['label' => 'Document Requests', 'href' => BASE_URL . '/staff/documents.php'],
+        ['label' => 'Update Records', 'href' => BASE_URL . '/staff/students.php', 'active' => 'Student Management'],
+    ];
+}
 ?>
 <aside class="sidebar">
   <div class="brand">
@@ -40,29 +54,19 @@ $nav = [
     </div>
   </div>
 
-  <?php foreach ($nav as $section => $items): ?>
-    <?php
-      if ($section === 'Administration' && strtolower($roleLabel) !== 'administrator') {
-          continue;
-      }
-      if ($section === 'Registrar Staff' && strtolower($roleLabel) !== 'registrar staff') {
-          if (strtolower($roleLabel) !== 'administrator') {
-              continue;
-          }
-      }
-    ?>
-    <div class="nav-section"><?php echo e($section); ?></div>
-    <nav class="nav">
-      <?php foreach ($items as $item): ?>
-        <?php $active = $activeNav === $item['label'] ? 'active' : ''; ?>
-        <a class="nav-item <?php echo $active; ?>" href="<?php echo $item['href']; ?>">
-          <span class="dot"></span>
-          <?php echo e($item['label']); ?>
-        </a>
-      <?php endforeach; ?>
-    </nav>
-  <?php endforeach; ?>
+  <nav class="nav">
+    <?php foreach ($navItems as $item): ?>
+      <?php
+        $activeKey = $item['active'] ?? $item['label'];
+        $active = $activeNav === $activeKey ? 'active' : '';
+        $short = $shorten($item['label']);
+      ?>
+      <a class="nav-item <?php echo $active; ?>" href="<?php echo $item['href']; ?>" data-short="<?php echo e($short); ?>">
+        <span class="dot"></span>
+        <span class="nav-text"><?php echo e($item['label']); ?></span>
+      </a>
+    <?php endforeach; ?>
+  </nav>
 
   <div class="sidebar-footer">v1.0.0</div>
 </aside>
-

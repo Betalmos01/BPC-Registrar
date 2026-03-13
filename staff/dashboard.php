@@ -6,10 +6,23 @@ $pageTitle = 'Staff Dashboard';
 $activeNav = 'Dashboard';
 
 $pdo = db();
-$studentCount = (int)$pdo->query('SELECT COUNT(*) FROM students')->fetchColumn();
-$classCount = (int)$pdo->query('SELECT COUNT(*) FROM classes')->fetchColumn();
-$enrollCount = (int)$pdo->query('SELECT COUNT(*) FROM enrollments')->fetchColumn();
-$docPending = (int)$pdo->query("SELECT COUNT(*) FROM documents WHERE status = 'Pending'")->fetchColumn();
+
+function safe_count(PDO $pdo, string $sql): int
+{
+    try {
+        return (int)$pdo->query($sql)->fetchColumn();
+    } catch (PDOException $e) {
+        if ($e->getCode() !== '42S02') {
+            throw $e;
+        }
+        return 0;
+    }
+}
+
+$studentCount = safe_count($pdo, 'SELECT COUNT(*) FROM students');
+$classCount = safe_count($pdo, 'SELECT COUNT(*) FROM classes');
+$enrollCount = safe_count($pdo, 'SELECT COUNT(*) FROM enrollments');
+$docPending = safe_count($pdo, "SELECT COUNT(*) FROM documents WHERE status = 'Pending'");
 
 include __DIR__ . '/../includes/header.php';
 include __DIR__ . '/../includes/sidebar.php';

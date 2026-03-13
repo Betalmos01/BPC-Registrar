@@ -17,56 +17,7 @@ try {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $action = $_POST['action'] ?? 'create';
-
-    if ($action === 'delete') {
-        $classId = (int)($_POST['class_id'] ?? 0);
-        if ($classId > 0) {
-            $stmt = $pdo->prepare('DELETE FROM classes WHERE id = :id');
-            $stmt->execute(['id' => $classId]);
-            log_action((int)$user['id'], 'Delete', 'Classes & Schedules', 'Deleted class ID ' . $classId);
-            set_flash('Class schedule deleted.');
-        }
-        header('Location: ' . BASE_URL . '/staff/classes.php');
-        exit;
-    }
-
-    $code = trim($_POST['class_code'] ?? '');
-    $title = trim($_POST['class_title'] ?? '');
-    $course = trim($_POST['course'] ?? '');
-    $units = (int)($_POST['units'] ?? 0);
-    $day = trim($_POST['day'] ?? '');
-    $time = trim($_POST['time'] ?? '');
-    $room = trim($_POST['room'] ?? '');
-
-    if ($code && $title) {
-        $pdo->beginTransaction();
-        try {
-            $stmt = $pdo->prepare('INSERT INTO classes (class_code, title, course, units, created_at) VALUES (:class_code, :title, :course, :units, NOW())');
-            $stmt->execute([
-                'class_code' => $code,
-                'title' => $title,
-                'course' => $course,
-                'units' => $units,
-            ]);
-            $classId = (int)$pdo->lastInsertId();
-            $sched = $pdo->prepare('INSERT INTO schedules (class_id, day, time, room, created_at) VALUES (:class_id, :day, :time, :room, NOW())');
-            $sched->execute([
-                'class_id' => $classId,
-                'day' => $day,
-                'time' => $time,
-                'room' => $room,
-            ]);
-            $pdo->commit();
-            log_action((int)$user['id'], 'Create', 'Classes & Schedules', 'Added class ' . $code);
-            set_flash('Class schedule added successfully.');
-        } catch (Throwable $e) {
-            $pdo->rollBack();
-            set_flash('Unable to save class schedule.', 'error');
-        }
-    } else {
-        set_flash('Class code and title are required.', 'error');
-    }
+    // Legacy: CRUD is handled by /api/classes.php (redirects back with flash messages).
     header('Location: ' . BASE_URL . '/staff/classes.php');
     exit;
 }
@@ -82,44 +33,79 @@ $query .= ' ORDER BY classes.created_at DESC';
 $stmt = $pdo->prepare($query);
 $stmt->execute($params);
 $classes = $stmt->fetchAll();
+$scheduledCount = count($classes);
+$roomCount = count(array_unique(array_filter(array_column($classes, 'room'))));
+$courseCount = count(array_unique(array_filter(array_column($classes, 'course'))));
+
+$days = $pdo->query("SELECT DISTINCT day FROM schedules WHERE day <> '' ORDER BY day")->fetchAll(PDO::FETCH_COLUMN);
+$times = $pdo->query("SELECT DISTINCT time FROM schedules WHERE time <> '' ORDER BY time")->fetchAll(PDO::FETCH_COLUMN);
+$rooms = $pdo->query("SELECT DISTINCT room FROM schedules WHERE room <> '' ORDER BY room")->fetchAll(PDO::FETCH_COLUMN);
+$courses = $pdo->query("SELECT DISTINCT course FROM classes WHERE course <> '' ORDER BY course")->fetchAll(PDO::FETCH_COLUMN);
+
+if (!$days) {
+    $days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+}
+if (!$times) {
+    $times = [
+        '7:00 AM - 9:00 AM',
+        '9:00 AM - 11:00 AM',
+        '11:00 AM - 1:00 PM',
+        '1:00 PM - 3:00 PM',
+        '3:00 PM - 5:00 PM',
+        '5:00 PM - 7:00 PM',
+    ];
+}
+if (!$rooms) {
+    $rooms = ['Room 101', 'Room 102', 'Room 201', 'Room 202', 'Room 301', 'Room 302', 'Lab 1', 'Lab 2'];
+}
+if (!$courses) {
+    $courses = ['BSIT', 'BSCS', 'BSBA', 'BSED', 'BEED', 'BSECE'];
+}
+$catalogRows = $pdo->query("SELECT class_code, title FROM classes ORDER BY class_code")->fetchAll();
+$classCatalog = [];
+foreach ($catalogRows as $row) {
+    $code = (string)($row['class_code'] ?? '');
+    if ($code === '') {
+        continue;
+    }
+    $classCatalog[$code] = (string)($row['title'] ?? '');
+}
 
 $pageTitle = 'Manage Classes & Schedules';
 $activeNav = 'Manage Classes & Schedules';
 include __DIR__ . '/../includes/header.php';
 include __DIR__ . '/../includes/sidebar.php';
 include __DIR__ . '/../includes/topbar.php';
-
-$days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-$times = [
-    '7:00 AM - 9:00 AM',
-    '9:00 AM - 11:00 AM',
-    '11:00 AM - 1:00 PM',
-    '1:00 PM - 3:00 PM',
-    '3:00 PM - 5:00 PM',
-    '5:00 PM - 7:00 PM',
-];
-$rooms = ['Room 101', 'Room 102', 'Room 201', 'Room 202', 'Room 301', 'Room 302', 'Lab 1', 'Lab 2'];
-$courses = ['BSIT', 'BSCS', 'BSBA', 'BSED', 'BEED', 'BSECE'];
-$classCatalog = [
-    'IT 101' => 'Introduction to Computing',
-    'IT 102' => 'Programming Fundamentals',
-    'IT 201' => 'Data Structures',
-    'IT 202' => 'Database Systems',
-    'CS 101' => 'Discrete Mathematics',
-    'CS 201' => 'Algorithms',
-    'BA 101' => 'Principles of Management',
-    'ED 101' => 'Foundations of Education',
-];
 ?>
+<section class="module-strip">
+  <article class="module-card">
+    <div class="module-label">Open Sections</div>
+    <div class="module-value"><?php echo (int)$scheduledCount; ?></div>
+    <div class="module-note">Available class offerings prepared for enrollment validation.</div>
+  </article>
+  <article class="module-card">
+    <div class="module-label">Courses Planned</div>
+    <div class="module-value"><?php echo (int)$courseCount; ?></div>
+    <div class="module-note">Programs with live academic load options in the current setup.</div>
+  </article>
+  <article class="module-card">
+    <div class="module-label">Rooms Utilized</div>
+    <div class="module-value"><?php echo (int)$roomCount; ?></div>
+    <div class="module-note">Physical rooms and labs assigned across scheduled sections.</div>
+  </article>
+</section>
+
 <section class="panel">
   <div class="panel-header">
     <div>
       <h2>Class Scheduling</h2>
-      <p>Create and maintain class offerings.</p>
+      <p>Create section offerings with complete schedule details before students are tagged as officially enrolled.</p>
     </div>
   </div>
 
-  <form class="form-grid" method="post">
+  <form class="form-grid" method="post" action="<?php echo BASE_URL; ?>/api/classes.php">
+    <input type="hidden" name="action" value="create" />
+    <input type="hidden" name="redirect" value="<?php echo BASE_URL; ?>/staff/classes.php" />
     <label>
       Class Code
       <input type="text" name="class_code" list="class-codes" required />
@@ -135,12 +121,12 @@ $classCatalog = [
     </label>
     <label>
       Course
-      <select name="course">
-        <option value="">Select course</option>
+      <input type="text" name="course" list="course-options" placeholder="BSIT / BSCS" />
+      <datalist id="course-options">
         <?php foreach ($courses as $course): ?>
-          <option value="<?php echo e($course); ?>"><?php echo e($course); ?></option>
+          <option value="<?php echo e($course); ?>"></option>
         <?php endforeach; ?>
-      </select>
+      </datalist>
     </label>
     <label>
       Units
@@ -148,30 +134,30 @@ $classCatalog = [
     </label>
     <label>
       Day
-      <select name="day">
-        <option value="">Select day</option>
+      <input type="text" name="day" list="day-options" placeholder="Monday" />
+      <datalist id="day-options">
         <?php foreach ($days as $day): ?>
-          <option value="<?php echo e($day); ?>"><?php echo e($day); ?></option>
+          <option value="<?php echo e($day); ?>"></option>
         <?php endforeach; ?>
-      </select>
+      </datalist>
     </label>
     <label>
       Time (2 hrs)
-      <select name="time">
-        <option value="">Select time</option>
+      <input type="text" name="time" list="time-options" placeholder="7:00 AM - 9:00 AM" />
+      <datalist id="time-options">
         <?php foreach ($times as $slot): ?>
-          <option value="<?php echo e($slot); ?>"><?php echo e($slot); ?></option>
+          <option value="<?php echo e($slot); ?>"></option>
         <?php endforeach; ?>
-      </select>
+      </datalist>
     </label>
     <label>
       Room
-      <select name="room">
-        <option value="">Select room</option>
+      <input type="text" name="room" list="room-options" placeholder="Room 101 / Lab 1" />
+      <datalist id="room-options">
         <?php foreach ($rooms as $room): ?>
-          <option value="<?php echo e($room); ?>"><?php echo e($room); ?></option>
+          <option value="<?php echo e($room); ?>"></option>
         <?php endforeach; ?>
-      </select>
+      </datalist>
     </label>
     <button class="primary" type="submit">Add Class</button>
   </form>
@@ -181,7 +167,7 @@ $classCatalog = [
   <div class="panel-header" style="align-items: center; gap: 12px;">
     <div>
       <h2>Class List</h2>
-      <p>View current schedule offerings.</p>
+      <p>This schedule list is the handoff point into enrollment. Each section here should be ready for student assignment and academic tracking.</p>
     </div>
     <form method="get" style="display: flex; gap: 8px; align-items: center;">
       <label style="margin: 0;">
@@ -222,11 +208,26 @@ $classCatalog = [
             <td><?php echo e($class['time']); ?></td>
             <td><?php echo e($class['room']); ?></td>
             <td>
-              <form class="inline-form" method="post" onsubmit="return confirm('Delete this class schedule?');">
-                <input type="hidden" name="action" value="delete" />
-                <input type="hidden" name="class_id" value="<?php echo (int)$class['id']; ?>" />
-                <button class="secondary" type="submit">Delete</button>
-              </form>
+              <div class="btn-row">
+                <button
+                  class="secondary btn-sm js-class-edit"
+                  type="button"
+                  data-id="<?php echo (int)$class['id']; ?>"
+                  data-class-code="<?php echo e($class['class_code']); ?>"
+                  data-class-title="<?php echo e($class['title']); ?>"
+                  data-course="<?php echo e($class['course']); ?>"
+                  data-units="<?php echo e((string)$class['units']); ?>"
+                  data-day="<?php echo e($class['day']); ?>"
+                  data-time="<?php echo e($class['time']); ?>"
+                  data-room="<?php echo e($class['room']); ?>"
+                >Edit</button>
+                <button
+                  class="secondary btn-sm danger js-class-delete"
+                  type="button"
+                  data-id="<?php echo (int)$class['id']; ?>"
+                  data-label="<?php echo e($class['class_code']); ?>"
+                >Delete</button>
+              </div>
             </td>
           </tr>
         <?php endforeach; ?>
@@ -236,7 +237,18 @@ $classCatalog = [
 </section>
 
 <script>
+  const BASE_URL = <?php echo json_encode(BASE_URL); ?>;
   const classCatalog = <?php echo json_encode($classCatalog); ?>;
+  const days = <?php echo json_encode($days); ?>;
+  const times = <?php echo json_encode($times); ?>;
+  const rooms = <?php echo json_encode($rooms); ?>;
+  const courses = <?php echo json_encode($courses); ?>;
+  const escapeHtml = (value) =>
+    String(value || '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  const datalist = (id, items) =>
+    `<datalist id="${id}">${(items || []).map((v) => `<option value="${escapeHtml(v)}"></option>`).join('')}</datalist>`;
+
   const codeInput = document.querySelector('input[name="class_code"]');
   const titleInput = document.querySelector('input[name="class_title"]');
   if (codeInput && titleInput) {
@@ -247,6 +259,97 @@ $classCatalog = [
       }
     });
   }
+
+  const openModal = (title, body, onSubmit, submitText, submitClass) => {
+    if (!window.RegistrarModal) return;
+    window.RegistrarModal.open({ title, body, onSubmit, submitText, submitClass });
+  };
+
+  document.querySelectorAll('.js-class-edit').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      const classCode = btn.dataset.classCode || '';
+      const classTitle = btn.dataset.classTitle || '';
+      const course = btn.dataset.course || '';
+      const units = btn.dataset.units || '3';
+      const day = btn.dataset.day || '';
+      const time = btn.dataset.time || '';
+      const room = btn.dataset.room || '';
+
+      const body = `
+        <div class="modal-error" style="display:none"></div>
+        <form class="form-grid" id="class-edit-form">
+          <label>Class Code<input name="class_code" type="text" required value="${escapeHtml(classCode)}" /></label>
+          <label>Class Title<input name="class_title" type="text" required value="${escapeHtml(classTitle)}" /></label>
+          <label>Course<input name="course" type="text" list="modal-course-options" value="${escapeHtml(course)}" />${datalist('modal-course-options', courses)}</label>
+          <label>Units<input name="units" type="number" min="1" max="6" value="${escapeHtml(units)}" /></label>
+          <label>Day<input name="day" type="text" list="modal-day-options" value="${escapeHtml(day)}" />${datalist('modal-day-options', days)}</label>
+          <label>Time (2 hrs)<input name="time" type="text" list="modal-time-options" value="${escapeHtml(time)}" />${datalist('modal-time-options', times)}</label>
+          <label>Room<input name="room" type="text" list="modal-room-options" value="${escapeHtml(room)}" />${datalist('modal-room-options', rooms)}</label>
+        </form>
+      `;
+
+      openModal(
+        'Edit Class Schedule',
+        body,
+        async ({ modal, close, submit }) => {
+          const errorBox = modal.querySelector('.modal-error');
+          const form = modal.querySelector('#class-edit-form');
+          try {
+            submit.disabled = true;
+            const fd = new FormData(form);
+            fd.set('action', 'update');
+            fd.set('class_id', id);
+            await window.RegistrarApi.post(`${BASE_URL}/api/classes.php`, fd);
+            close();
+            window.location.reload();
+          } catch (e) {
+            submit.disabled = false;
+            if (errorBox) {
+              errorBox.style.display = '';
+              errorBox.textContent = e.message || 'Request failed.';
+            }
+          }
+        },
+        'Save',
+        'primary'
+      );
+    });
+  });
+
+  document.querySelectorAll('.js-class-delete').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      const label = btn.dataset.label || '';
+
+      const body = `
+        <div class="modal-error" style="display:none"></div>
+        <p style="margin:0">Delete class schedule <strong>${escapeHtml(label)}</strong>? This also removes linked schedules, enrollments, and grades.</p>
+      `;
+
+      openModal(
+        'Delete Class Schedule',
+        body,
+        async ({ modal, close, submit }) => {
+          const errorBox = modal.querySelector('.modal-error');
+          try {
+            submit.disabled = true;
+            await window.RegistrarApi.post(`${BASE_URL}/api/classes.php`, { action: 'delete', class_id: id });
+            close();
+            window.location.reload();
+          } catch (e) {
+            submit.disabled = false;
+            if (errorBox) {
+              errorBox.style.display = '';
+              errorBox.textContent = e.message || 'Request failed.';
+            }
+          }
+        },
+        'Delete',
+        'danger primary'
+      );
+    });
+  });
 </script>
 <?php include __DIR__ . '/../includes/footer.php'; ?>
 

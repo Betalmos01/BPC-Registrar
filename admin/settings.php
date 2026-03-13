@@ -31,6 +31,14 @@ include __DIR__ . '/../includes/topbar.php';
       <div class="value">Document Requests</div>
       <p class="muted">Pending requests are highlighted for staff.</p>
     </div>
+    <div class="settings-card">
+      <div class="label">Demo Data</div>
+      <div class="value">Seed Registrar Records</div>
+      <p class="muted">Adds realistic sample students, classes, enrollments, grades, documents, and reports when tables are empty.</p>
+      <form method="post" action="<?php echo BASE_URL; ?>/admin/seed_demo.php" style="margin-top: 12px;">
+        <button class="primary" type="submit">Seed Demo Data</button>
+      </form>
+    </div>
   </div>
 </section>
 <?php include __DIR__ . '/../includes/footer.php'; ?>

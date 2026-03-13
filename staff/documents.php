@@ -5,43 +5,6 @@ require_role('Registrar Staff');
 $pdo = db();
 $user = current_user();
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $action = $_POST['action'] ?? '';
-    if ($action === 'create') {
-        $studentId = (int)($_POST['student_id'] ?? 0);
-        $docType = trim($_POST['doc_type'] ?? '');
-        if ($studentId && $docType) {
-            $stmt = $pdo->prepare('INSERT INTO documents (student_id, doc_type, status, requested_at) VALUES (:student_id, :doc_type, :status, NOW())');
-            $stmt->execute([
-                'student_id' => $studentId,
-                'doc_type' => $docType,
-                'status' => 'Pending',
-            ]);
-            log_action((int)$user['id'], 'Create', 'Document Requests', 'Requested ' . $docType);
-            set_flash('Document request submitted.');
-        } else {
-            set_flash('Please select student and document type.', 'error');
-        }
-    }
-
-    if ($action === 'update') {
-        $docId = (int)($_POST['doc_id'] ?? 0);
-        $status = trim($_POST['status'] ?? '');
-        if ($docId && $status) {
-            $stmt = $pdo->prepare('UPDATE documents SET status = :status, completed_at = IF(:status = "Completed", NOW(), completed_at) WHERE id = :id');
-            $stmt->execute([
-                'status' => $status,
-                'id' => $docId,
-            ]);
-            log_action((int)$user['id'], 'Update', 'Document Requests', 'Updated document request ' . $docId);
-            set_flash('Document request updated.');
-        }
-    }
-
-    header('Location: ' . BASE_URL . '/staff/documents.php');
-    exit;
-}
-
 $students = $pdo->query('SELECT id, student_no, first_name, last_name FROM students ORDER BY last_name')->fetchAll();
 $documents = $pdo->query('SELECT documents.id, documents.doc_type, documents.status, documents.requested_at, students.student_no, students.first_name, students.last_name FROM documents JOIN students ON documents.student_id = students.id ORDER BY documents.requested_at DESC')->fetchAll();
 
@@ -59,8 +22,9 @@ include __DIR__ . '/../includes/topbar.php';
     </div>
   </div>
 
-  <form class="form-grid" method="post">
+  <form class="form-grid" method="post" action="<?php echo BASE_URL; ?>/api/documents.php">
     <input type="hidden" name="action" value="create" />
+    <input type="hidden" name="redirect" value="<?php echo BASE_URL; ?>/staff/documents.php" />
     <label>
       Student
       <select name="student_id" required>
@@ -93,7 +57,7 @@ include __DIR__ . '/../includes/topbar.php';
           <th>Document</th>
           <th>Status</th>
           <th>Requested</th>
-          <th>Update</th>
+          <th>Action</th>
         </tr>
       </thead>
       <tbody>
@@ -107,16 +71,25 @@ include __DIR__ . '/../includes/topbar.php';
             <td><span class="status <?php echo status_class($doc['status']); ?>"><?php echo e($doc['status']); ?></span></td>
             <td><?php echo e($doc['requested_at']); ?></td>
             <td>
-              <form method="post" class="inline-form">
+              <div class="btn-row">
+              <form method="post" class="inline-form" action="<?php echo BASE_URL; ?>/api/documents.php">
                 <input type="hidden" name="action" value="update" />
+                <input type="hidden" name="redirect" value="<?php echo BASE_URL; ?>/staff/documents.php" />
                 <input type="hidden" name="doc_id" value="<?php echo $doc['id']; ?>" />
                 <select name="status">
                   <option <?php echo $doc['status'] === 'Pending' ? 'selected' : ''; ?>>Pending</option>
                   <option <?php echo $doc['status'] === 'Processing' ? 'selected' : ''; ?>>Processing</option>
                   <option <?php echo $doc['status'] === 'Completed' ? 'selected' : ''; ?>>Completed</option>
                 </select>
-                <button class="secondary" type="submit">Update</button>
+                <button class="secondary btn-sm" type="submit">Update</button>
               </form>
+              <button
+                class="secondary btn-sm danger js-document-delete"
+                type="button"
+                data-id="<?php echo (int)$doc['id']; ?>"
+                data-label="<?php echo e($doc['student_no'] . ' | ' . $doc['doc_type']); ?>"
+              >Delete</button>
+              </div>
             </td>
           </tr>
         <?php endforeach; ?>
@@ -124,5 +97,52 @@ include __DIR__ . '/../includes/topbar.php';
     </table>
   </div>
 </section>
+
+<script>
+  (() => {
+    const BASE_URL = <?php echo json_encode(BASE_URL); ?>;
+    const escapeHtml = (value) =>
+      String(value || '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+    const openModal = (title, body, onSubmit, submitText, submitClass) => {
+      if (!window.RegistrarModal) return;
+      window.RegistrarModal.open({ title, body, onSubmit, submitText, submitClass });
+    };
+
+    document.querySelectorAll('.js-document-delete').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.id;
+        const label = btn.dataset.label || '';
+
+        const body = `
+          <div class="modal-error" style="display:none"></div>
+          <p style="margin:0">Delete document request <strong>${escapeHtml(label)}</strong>?</p>
+        `;
+
+        openModal(
+          'Delete Document Request',
+          body,
+          async ({ modal, close, submit }) => {
+            const errorBox = modal.querySelector('.modal-error');
+            try {
+              submit.disabled = true;
+              await window.RegistrarApi.post(`${BASE_URL}/api/documents.php`, { action: 'delete', doc_id: id });
+              close();
+              window.location.reload();
+            } catch (e) {
+              submit.disabled = false;
+              if (errorBox) {
+                errorBox.style.display = '';
+                errorBox.textContent = e.message || 'Request failed.';
+              }
+            }
+          },
+          'Delete',
+          'danger primary'
+        );
+      });
+    });
+  })();
+</script>
 <?php include __DIR__ . '/../includes/footer.php'; ?>
 

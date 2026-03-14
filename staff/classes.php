@@ -101,66 +101,10 @@ include __DIR__ . '/../includes/topbar.php';
       <h2>Class Scheduling</h2>
       <p>Create section offerings with complete schedule details before students are tagged as officially enrolled.</p>
     </div>
+    <div class="panel-actions">
+      <button class="primary btn-sm js-class-create" type="button">Add Class</button>
+    </div>
   </div>
-
-  <form class="form-grid" method="post" action="<?php echo BASE_URL; ?>/api/classes.php">
-    <input type="hidden" name="action" value="create" />
-    <input type="hidden" name="redirect" value="<?php echo BASE_URL; ?>/staff/classes.php" />
-    <label>
-      Class Code
-      <input type="text" name="class_code" list="class-codes" required />
-      <datalist id="class-codes">
-        <?php foreach ($classCatalog as $code => $label): ?>
-          <option value="<?php echo e($code); ?>"><?php echo e($label); ?></option>
-        <?php endforeach; ?>
-      </datalist>
-    </label>
-    <label>
-      Class Title
-      <input type="text" name="class_title" required />
-    </label>
-    <label>
-      Course
-      <input type="text" name="course" list="course-options" placeholder="BSIT / BSCS" />
-      <datalist id="course-options">
-        <?php foreach ($courses as $course): ?>
-          <option value="<?php echo e($course); ?>"></option>
-        <?php endforeach; ?>
-      </datalist>
-    </label>
-    <label>
-      Units
-      <input type="number" name="units" min="1" max="6" value="3" />
-    </label>
-    <label>
-      Day
-      <input type="text" name="day" list="day-options" placeholder="Monday" />
-      <datalist id="day-options">
-        <?php foreach ($days as $day): ?>
-          <option value="<?php echo e($day); ?>"></option>
-        <?php endforeach; ?>
-      </datalist>
-    </label>
-    <label>
-      Time (2 hrs)
-      <input type="text" name="time" list="time-options" placeholder="7:00 AM - 9:00 AM" />
-      <datalist id="time-options">
-        <?php foreach ($times as $slot): ?>
-          <option value="<?php echo e($slot); ?>"></option>
-        <?php endforeach; ?>
-      </datalist>
-    </label>
-    <label>
-      Room
-      <input type="text" name="room" list="room-options" placeholder="Room 101 / Lab 1" />
-      <datalist id="room-options">
-        <?php foreach ($rooms as $room): ?>
-          <option value="<?php echo e($room); ?>"></option>
-        <?php endforeach; ?>
-      </datalist>
-    </label>
-    <button class="primary" type="submit">Add Class</button>
-  </form>
 </section>
 
 <section class="panel">
@@ -249,21 +193,80 @@ include __DIR__ . '/../includes/topbar.php';
   const datalist = (id, items) =>
     `<datalist id="${id}">${(items || []).map((v) => `<option value="${escapeHtml(v)}"></option>`).join('')}</datalist>`;
 
-  const codeInput = document.querySelector('input[name="class_code"]');
-  const titleInput = document.querySelector('input[name="class_title"]');
-  if (codeInput && titleInput) {
-    codeInput.addEventListener('input', () => {
-      const match = classCatalog[codeInput.value.trim()];
-      if (match) {
-        titleInput.value = match;
-      }
-    });
-  }
-
   const openModal = (title, body, onSubmit, submitText, submitClass) => {
     if (!window.RegistrarModal) return;
     window.RegistrarModal.open({ title, body, onSubmit, submitText, submitClass });
   };
+
+  const createButton = document.querySelector('.js-class-create');
+  if (createButton) {
+    createButton.addEventListener('click', () => {
+      const body = `
+        <div class="modal-error" style="display:none"></div>
+        <form class="form-grid" id="class-create-form">
+          <label>Class Code
+            <input id="class-create-code" name="class_code" type="text" list="modal-class-codes" required />
+            ${datalist('modal-class-codes', Object.keys(classCatalog || {}))}
+          </label>
+          <label>Class Title<input id="class-create-title" name="class_title" type="text" required /></label>
+          <label>Course
+            <input name="course" type="text" list="modal-course-options" placeholder="BSIT / BSCS" />
+            ${datalist('modal-course-options', courses)}
+          </label>
+          <label>Units<input name="units" type="number" min="1" max="6" value="3" /></label>
+          <label>Day
+            <input name="day" type="text" list="modal-day-options" placeholder="Monday" />
+            ${datalist('modal-day-options', days)}
+          </label>
+          <label>Time (2 hrs)
+            <input name="time" type="text" list="modal-time-options" placeholder="7:00 AM - 9:00 AM" />
+            ${datalist('modal-time-options', times)}
+          </label>
+          <label>Room
+            <input name="room" type="text" list="modal-room-options" placeholder="Room 101 / Lab 1" />
+            ${datalist('modal-room-options', rooms)}
+          </label>
+        </form>
+      `;
+
+      openModal(
+        'Add Class Schedule',
+        body,
+        async ({ modal, close, submit }) => {
+          const errorBox = modal.querySelector('.modal-error');
+          const form = modal.querySelector('#class-create-form');
+          try {
+            submit.disabled = true;
+            const fd = new FormData(form);
+            fd.set('action', 'create');
+            await window.RegistrarApi.post(`${BASE_URL}/api/classes.php`, fd);
+            close();
+            window.location.reload();
+          } catch (e) {
+            submit.disabled = false;
+            if (errorBox) {
+              errorBox.style.display = '';
+              errorBox.textContent = e.message || 'Request failed.';
+            }
+          }
+        },
+        'Create Class',
+        'primary'
+      );
+
+      const modal = document.getElementById('app-modal');
+      const codeInput = modal?.querySelector('#class-create-code');
+      const titleInput = modal?.querySelector('#class-create-title');
+      if (codeInput && titleInput) {
+        codeInput.addEventListener('input', () => {
+          const match = classCatalog[codeInput.value.trim()];
+          if (match) {
+            titleInput.value = match;
+          }
+        });
+      }
+    });
+  }
 
   document.querySelectorAll('.js-class-edit').forEach((btn) => {
     btn.addEventListener('click', () => {

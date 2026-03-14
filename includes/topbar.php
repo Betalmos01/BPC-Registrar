@@ -91,34 +91,17 @@ try {
     </div>
   </header>
 
-  <section class="workflow-shell">
-    <div class="workflow-steps">
-      <?php foreach ($workflow as $index => $step): ?>
-        <?php
-          $state = 'upcoming';
-          if ($index < $currentStep) {
-              $state = 'done';
-          } elseif ($index === $currentStep) {
-              $state = 'current';
-          }
-        ?>
-        <a class="workflow-step <?php echo e($state); ?>" href="<?php echo $step['href']; ?>">
-          <span class="workflow-step-index"><?php echo $index + 1; ?></span>
-          <span class="workflow-step-copy">
-            <span class="workflow-step-title"><?php echo e($step['label']); ?></span>
-            <span class="workflow-step-text"><?php echo e($step['summary']); ?></span>
-          </span>
-        </a>
-      <?php endforeach; ?>
-    </div>
-  </section>
-
-  <section class="page-header">
-    <div>
-      <div class="page-title"><?php echo e($pageTitle); ?></div>
-      <div class="page-sub"><?php echo $greetingName ? 'Signed in as ' . e($greetingName) . '.' : 'Welcome back.'; ?></div>
-    </div>
-  </section>
+  <?php if ($activeNav !== 'Dashboard'): ?>
+    <section class="module-hero">
+      <div class="module-hero-inner">
+        <div class="module-hero-eyebrow"><?php echo e($workflowPage['eyebrow'] ?? 'Registrar Workspace'); ?></div>
+        <div class="module-hero-title"><?php echo e($pageTitle); ?></div>
+        <div class="module-hero-sub">
+          <?php echo $greetingName ? 'Signed in as ' . e($greetingName) . '.' : 'Welcome back.'; ?>
+        </div>
+      </div>
+    </section>
+  <?php endif; ?>
 
   <?php if ($flash): ?>
     <div class="alert <?php echo e($flash['type']); ?>">

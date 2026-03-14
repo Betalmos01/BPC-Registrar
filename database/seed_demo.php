@@ -13,6 +13,7 @@ function seed_demo_data(PDO $pdo): array
         'reports' => 0,
         'academic_reports' => 0,
         'notifications' => 0,
+        'audit_logs' => 0,
     ];
 
     $pdo->beginTransaction();
@@ -223,6 +224,28 @@ function seed_demo_data(PDO $pdo): array
             }
         }
 
+        $hasLogs = (int)$pdo->query('SELECT COUNT(*) FROM audit_logs')->fetchColumn() > 0;
+        if (!$hasLogs) {
+            $userIds = $pdo->query('SELECT id FROM users ORDER BY id ASC')->fetchAll(PDO::FETCH_COLUMN);
+            if ($userIds) {
+                $rows = [
+                    [$userIds[0] ?? null, 'Seed', 'System', 'Initial demo data seeded.'],
+                    [$userIds[0] ?? null, 'Create', 'Student Records', 'Seeded student records for demo.'],
+                    [$userIds[1] ?? ($userIds[0] ?? null), 'Create', 'Classes & Schedules', 'Seeded class catalog and schedules.'],
+                ];
+                $stmt = $pdo->prepare('INSERT INTO audit_logs (user_id, action, module, details, created_at) VALUES (:user_id, :action, :module, :details, NOW())');
+                foreach ($rows as $row) {
+                    $stmt->execute([
+                        'user_id' => $row[0],
+                        'action' => $row[1],
+                        'module' => $row[2],
+                        'details' => $row[3],
+                    ]);
+                    $counts['audit_logs']++;
+                }
+            }
+        }
+
         $pdo->commit();
         return $counts;
     } catch (Throwable $e) {
@@ -230,4 +253,3 @@ function seed_demo_data(PDO $pdo): array
         throw $e;
     }
 }
-

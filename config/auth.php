@@ -6,6 +6,9 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// Bootstrap database schema + demo seeds on first request.
+db();
+
 function resolve_role_from_path(): string
 {
     $path = strtolower($_SERVER['REQUEST_URI'] ?? '');

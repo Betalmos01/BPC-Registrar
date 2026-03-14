@@ -50,39 +50,10 @@ include __DIR__ . '/../includes/topbar.php';
       <h2>Enroll Students</h2>
       <p>Validate student-to-section assignment here after records and class schedules have already been completed upstream.</p>
     </div>
+    <div class="panel-actions">
+      <button class="primary btn-sm js-enrollment-create" type="button">Add Enrollment</button>
+    </div>
   </div>
-
-  <form class="form-grid" method="post" action="<?php echo BASE_URL; ?>/api/enrollments.php">
-    <input type="hidden" name="action" value="create" />
-    <input type="hidden" name="redirect" value="<?php echo BASE_URL; ?>/staff/enrollments.php" />
-    <label>
-      Student
-      <select name="student_id" required>
-        <option value="">Select student</option>
-        <?php foreach ($students as $student): ?>
-          <option value="<?php echo $student['id']; ?>"><?php echo e($student['student_no'] . ' - ' . $student['last_name'] . ', ' . $student['first_name']); ?></option>
-        <?php endforeach; ?>
-      </select>
-    </label>
-    <label>
-      Class
-      <select name="class_id" required>
-        <option value="">Select class</option>
-        <?php foreach ($classes as $class): ?>
-          <option value="<?php echo $class['id']; ?>"><?php echo e($class['class_code'] . ' - ' . $class['title']); ?></option>
-        <?php endforeach; ?>
-      </select>
-    </label>
-    <label>
-      Status
-      <select name="status">
-        <option>Enrolled</option>
-        <option>Pending</option>
-        <option>Waitlisted</option>
-      </select>
-    </label>
-    <button class="primary" type="submit">Add Enrollment</button>
-  </form>
 </section>
 
 <section class="panel">
@@ -138,6 +109,8 @@ include __DIR__ . '/../includes/topbar.php';
 <script>
   (() => {
     const BASE_URL = <?php echo json_encode(BASE_URL); ?>;
+    const students = <?php echo json_encode($students); ?>;
+    const classes = <?php echo json_encode($classes); ?>;
     const escapeHtml = (value) =>
       String(value || '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -145,6 +118,64 @@ include __DIR__ . '/../includes/topbar.php';
       if (!window.RegistrarModal) return;
       window.RegistrarModal.open({ title, body, onSubmit, submitText, submitClass });
     };
+
+    const optionList = (items, labelFn) =>
+      (items || []).map((item) => `<option value="${item.id}">${escapeHtml(labelFn(item))}</option>`).join('');
+
+    const createButton = document.querySelector('.js-enrollment-create');
+    if (createButton) {
+      createButton.addEventListener('click', () => {
+        const body = `
+          <div class="modal-error" style="display:none"></div>
+          <form class="form-grid" id="enrollment-create-form">
+            <label>Student
+              <select name="student_id" required>
+                <option value="">Select student</option>
+                ${optionList(students, (s) => `${s.student_no} - ${s.last_name}, ${s.first_name}`)}
+              </select>
+            </label>
+            <label>Class
+              <select name="class_id" required>
+                <option value="">Select class</option>
+                ${optionList(classes, (c) => `${c.class_code} - ${c.title}`)}
+              </select>
+            </label>
+            <label>Status
+              <select name="status">
+                <option>Enrolled</option>
+                <option>Pending</option>
+                <option>Waitlisted</option>
+              </select>
+            </label>
+          </form>
+        `;
+
+        openModal(
+          'Add Enrollment',
+          body,
+          async ({ modal, close, submit }) => {
+            const errorBox = modal.querySelector('.modal-error');
+            const form = modal.querySelector('#enrollment-create-form');
+            try {
+              submit.disabled = true;
+              const fd = new FormData(form);
+              fd.set('action', 'create');
+              await window.RegistrarApi.post(`${BASE_URL}/api/enrollments.php`, fd);
+              close();
+              window.location.reload();
+            } catch (e) {
+              submit.disabled = false;
+              if (errorBox) {
+                errorBox.style.display = '';
+                errorBox.textContent = e.message || 'Request failed.';
+              }
+            }
+          },
+          'Create Enrollment',
+          'primary'
+        );
+      });
+    }
 
     document.querySelectorAll('.js-enrollment-edit').forEach((btn) => {
       btn.addEventListener('click', () => {

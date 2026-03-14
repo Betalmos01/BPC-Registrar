@@ -1106,24 +1106,46 @@ button.secondary[disabled] {
 }
 
 
-.page-header {
-  background: #ffffff;
-  border-radius: 16px;
-  padding: 16px 18px;
-  margin: 16px 0 18px;
-  border: 1px solid var(--border);
-  box-shadow: 0 6px 14px rgba(14, 42, 87, 0.06);
+/* Legacy page header removed; use .module-hero instead. */
+
+.module-hero {
+  margin: 12px 0 16px;
+  border-radius: 22px;
+  padding: 18px 18px 16px;
+  background: linear-gradient(110deg, #23408f 0%, #2f67d0 55%, #49a8f0 100%);
+  box-shadow: 0 16px 30px rgba(14, 42, 87, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #fff;
 }
 
-.page-title {
-  font-size: 20px;
-  font-weight: 700;
+.module-hero-inner {
+  display: grid;
+  gap: 8px;
 }
 
-.page-sub {
-  font-size: 13px;
-  color: var(--muted);
-  margin-top: 4px;
+.module-hero-eyebrow {
+  display: inline-flex;
+  width: fit-content;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.module-hero-title {
+  font-family: "Lexend", sans-serif;
+  font-weight: 800;
+  font-size: 1.35rem;
+  line-height: 1.2;
+}
+
+.module-hero-sub {
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 0.9rem;
 }
 
 .app-footer {
@@ -1441,8 +1463,8 @@ button.secondary[disabled] {
     width: 100%;
     justify-content: flex-end;
   }
-  .page-header {
-    padding: 14px;
+  .module-hero {
+    padding: 16px 14px 14px;
   }
   .metrics {
     grid-template-columns: 1fr;
@@ -1850,6 +1872,11 @@ body {
   margin: 6px 0 14px;
 }
 
+/* Workflow strip removed. Keep a defensive hide to avoid blank gaps. */
+.workflow-shell {
+  display: none !important;
+}
+
 .workflow-steps {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
@@ -1868,6 +1895,12 @@ body {
 .workflow-steps::-webkit-scrollbar-thumb {
   background: rgba(47, 107, 217, 0.28);
   border-radius: 999px;
+}
+
+/* Workflow step cards row is intentionally removed from the UI.
+   Defensive hide in case older markup is still served (e.g., PHP opcache). */
+.workflow-steps {
+  display: none !important;
 }
 
 .module-strip {
@@ -1977,7 +2010,7 @@ body {
 
 .workflow-step {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   align-items: flex-start;
   padding: 14px 16px;
   border-radius: 18px;
@@ -2172,7 +2205,6 @@ body {
 
 .hero,
 .panel,
-.page-header,
 .table-wrap,
 .task,
 .staff-card,
@@ -2339,23 +2371,7 @@ body {
   background: #f5f8ff;
 }
 
-.page-header {
-  margin-top: -4px;
-  margin-bottom: 14px;
-  background: transparent;
-  border: 0;
-  box-shadow: none;
-  padding: 0 4px;
-}
 
-.page-title {
-  font-size: 1rem;
-  color: #243b69;
-}
-
-.page-sub {
-  font-size: 0.84rem;
-}
 
 .app-footer {
   margin-top: 28px;

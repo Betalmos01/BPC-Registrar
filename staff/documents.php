@@ -20,26 +20,10 @@ include __DIR__ . '/../includes/topbar.php';
       <h2>Request Documents</h2>
       <p>Manage student requests and processing status.</p>
     </div>
+    <div class="panel-actions">
+      <button class="primary btn-sm js-document-create" type="button">New Request</button>
+    </div>
   </div>
-
-  <form class="form-grid" method="post" action="<?php echo BASE_URL; ?>/api/documents.php">
-    <input type="hidden" name="action" value="create" />
-    <input type="hidden" name="redirect" value="<?php echo BASE_URL; ?>/staff/documents.php" />
-    <label>
-      Student
-      <select name="student_id" required>
-        <option value="">Select student</option>
-        <?php foreach ($students as $student): ?>
-          <option value="<?php echo $student['id']; ?>"><?php echo e($student['student_no'] . ' - ' . $student['last_name'] . ', ' . $student['first_name']); ?></option>
-        <?php endforeach; ?>
-      </select>
-    </label>
-    <label>
-      Document Type
-      <input type="text" name="doc_type" placeholder="Transcript / Certification" required />
-    </label>
-    <button class="primary" type="submit">Submit Request</button>
-  </form>
 </section>
 
 <section class="panel">
@@ -101,6 +85,7 @@ include __DIR__ . '/../includes/topbar.php';
 <script>
   (() => {
     const BASE_URL = <?php echo json_encode(BASE_URL); ?>;
+    const students = <?php echo json_encode($students); ?>;
     const escapeHtml = (value) =>
       String(value || '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -108,6 +93,52 @@ include __DIR__ . '/../includes/topbar.php';
       if (!window.RegistrarModal) return;
       window.RegistrarModal.open({ title, body, onSubmit, submitText, submitClass });
     };
+
+    const optionList = (items, labelFn) =>
+      (items || []).map((item) => `<option value="${item.id}">${escapeHtml(labelFn(item))}</option>`).join('');
+
+    const createButton = document.querySelector('.js-document-create');
+    if (createButton) {
+      createButton.addEventListener('click', () => {
+        const body = `
+          <div class="modal-error" style="display:none"></div>
+          <form class="form-grid" id="document-create-form">
+            <label>Student
+              <select name="student_id" required>
+                <option value="">Select student</option>
+                ${optionList(students, (s) => `${s.student_no} - ${s.last_name}, ${s.first_name}`)}
+              </select>
+            </label>
+            <label>Document Type<input name="doc_type" type="text" placeholder="Transcript / Certification" required /></label>
+          </form>
+        `;
+
+        openModal(
+          'New Document Request',
+          body,
+          async ({ modal, close, submit }) => {
+            const errorBox = modal.querySelector('.modal-error');
+            const form = modal.querySelector('#document-create-form');
+            try {
+              submit.disabled = true;
+              const fd = new FormData(form);
+              fd.set('action', 'create');
+              await window.RegistrarApi.post(`${BASE_URL}/api/documents.php`, fd);
+              close();
+              window.location.reload();
+            } catch (e) {
+              submit.disabled = false;
+              if (errorBox) {
+                errorBox.style.display = '';
+                errorBox.textContent = e.message || 'Request failed.';
+              }
+            }
+          },
+          'Submit Request',
+          'primary'
+        );
+      });
+    }
 
     document.querySelectorAll('.js-document-delete').forEach((btn) => {
       btn.addEventListener('click', () => {

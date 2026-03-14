@@ -62,41 +62,10 @@ include __DIR__ . '/../includes/topbar.php';
       <h2>Student Records</h2>
       <p>Register official student profiles first so class planning, enrollment confirmation, and grade release all inherit accurate identity data.</p>
     </div>
+    <div class="panel-actions">
+      <button class="primary btn-sm js-student-create" type="button">Add Student</button>
+    </div>
   </div>
-
-  <form class="form-grid" method="post" action="<?php echo BASE_URL; ?>/api/students.php">
-    <input type="hidden" name="action" value="create" />
-    <input type="hidden" name="redirect" value="<?php echo BASE_URL; ?>/staff/students.php" />
-    <label>
-      Student No
-      <input type="text" name="student_no" required />
-    </label>
-    <label>
-      First Name
-      <input type="text" name="first_name" required />
-    </label>
-    <label>
-      Last Name
-      <input type="text" name="last_name" required />
-    </label>
-    <label>
-      Program
-      <input type="text" name="program" />
-    </label>
-    <label>
-      Year Level
-      <input type="text" name="year_level" />
-    </label>
-    <label>
-      Status
-      <select name="status">
-        <option>Active</option>
-        <option>Inactive</option>
-        <option>On Hold</option>
-      </select>
-    </label>
-    <button class="primary" type="submit">Add Student</button>
-  </form>
 </section>
 
 <section class="panel">
@@ -169,6 +138,55 @@ include __DIR__ . '/../includes/topbar.php';
       if (!window.RegistrarModal) return;
       window.RegistrarModal.open({ title, body, onSubmit, submitText, submitClass });
     };
+
+    const createButton = document.querySelector('.js-student-create');
+    if (createButton) {
+      createButton.addEventListener('click', () => {
+        const body = `
+          <div class="modal-error" style="display:none"></div>
+          <form class="form-grid" id="student-create-form">
+            <label>Student No<input name="student_no" type="text" required /></label>
+            <label>First Name<input name="first_name" type="text" required /></label>
+            <label>Last Name<input name="last_name" type="text" required /></label>
+            <label>Program<input name="program" type="text" /></label>
+            <label>Year Level<input name="year_level" type="text" /></label>
+            <label>Status
+              <select name="status">
+                <option>Active</option>
+                <option>Inactive</option>
+                <option>On Hold</option>
+              </select>
+            </label>
+          </form>
+        `;
+
+        openStudentModal(
+          'Add Student',
+          body,
+          async ({ modal, close, submit }) => {
+            const errorBox = modal.querySelector('.modal-error');
+            const form = modal.querySelector('#student-create-form');
+            if (!form) return;
+            try {
+              submit.disabled = true;
+              const fd = new FormData(form);
+              fd.set('action', 'create');
+              await window.RegistrarApi.post(`${BASE_URL}/api/students.php`, fd);
+              close();
+              window.location.reload();
+            } catch (e) {
+              submit.disabled = false;
+              if (errorBox) {
+                errorBox.style.display = '';
+                errorBox.textContent = e.message || 'Request failed.';
+              }
+            }
+          },
+          'Create Student',
+          'primary'
+        );
+      });
+    }
 
     const editButtons = document.querySelectorAll('.js-student-edit');
     editButtons.forEach((btn) => {

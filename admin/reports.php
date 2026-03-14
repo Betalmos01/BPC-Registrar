@@ -19,33 +19,10 @@ include __DIR__ . '/../includes/topbar.php';
       <h2>Generate Reports</h2>
       <p>System and academic report compilation.</p>
     </div>
+    <div class="panel-actions">
+      <button class="primary btn-sm js-report-create" type="button">Create Report</button>
+    </div>
   </div>
-
-  <form class="form-grid" method="post" action="<?php echo BASE_URL; ?>/api/reports.php">
-    <input type="hidden" name="action" value="create" />
-    <input type="hidden" name="redirect" value="<?php echo BASE_URL; ?>/admin/reports.php" />
-    <label>
-      Report Title
-      <input type="text" name="title" required />
-    </label>
-    <label>
-      Department
-      <input type="text" name="department" required />
-    </label>
-    <label>
-      Status
-      <select name="status">
-        <option>Pending</option>
-        <option>In Review</option>
-        <option>Completed</option>
-      </select>
-    </label>
-    <label>
-      Due Date
-      <input type="date" name="due_date" />
-    </label>
-    <button class="primary" type="submit">Create Report</button>
-  </form>
 </section>
 
 <section class="panel">
@@ -116,6 +93,46 @@ include __DIR__ . '/../includes/topbar.php';
       if (!window.RegistrarModal) return;
       window.RegistrarModal.open({ title, body, onSubmit, submitText, submitClass });
     };
+
+    const createButton = document.querySelector('.js-report-create');
+    if (createButton) {
+      createButton.addEventListener('click', () => {
+        const body = `
+          <div class="modal-error" style="display:none"></div>
+          <form class="form-grid" id="report-create-form">
+            <label>Report Title<input name="title" type="text" required /></label>
+            <label>Department<input name="department" type="text" required /></label>
+            <label>Status<select name="status">${statusOptions('Pending')}</select></label>
+            <label>Due Date<input name="due_date" type="date" /></label>
+          </form>
+        `;
+
+        openModal(
+          'Create Report',
+          body,
+          async ({ modal, close, submit }) => {
+            const errorBox = modal.querySelector('.modal-error');
+            const form = modal.querySelector('#report-create-form');
+            try {
+              submit.disabled = true;
+              const fd = new FormData(form);
+              fd.set('action', 'create');
+              await window.RegistrarApi.post(`${BASE_URL}/api/reports.php`, fd);
+              close();
+              window.location.reload();
+            } catch (e) {
+              submit.disabled = false;
+              if (errorBox) {
+                errorBox.style.display = '';
+                errorBox.textContent = e.message || 'Request failed.';
+              }
+            }
+          },
+          'Create Report',
+          'primary'
+        );
+      });
+    }
 
     document.querySelectorAll('.js-report-edit').forEach((btn) => {
       btn.addEventListener('click', () => {

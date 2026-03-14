@@ -19,29 +19,10 @@ include __DIR__ . '/../includes/topbar.php';
       <h2>Academic Reports</h2>
       <p>Generate academic performance and transcript reports.</p>
     </div>
+    <div class="panel-actions">
+      <button class="primary btn-sm js-acr-create" type="button">Create Report</button>
+    </div>
   </div>
-
-  <form class="form-grid" method="post" action="<?php echo BASE_URL; ?>/api/academic_reports.php">
-    <input type="hidden" name="action" value="create" />
-    <input type="hidden" name="redirect" value="<?php echo BASE_URL; ?>/admin/academic_reports.php" />
-    <label>
-      Report Title
-      <input type="text" name="title" required />
-    </label>
-    <label>
-      Coverage
-      <input type="text" name="coverage" placeholder="AY 2025-2026" required />
-    </label>
-    <label>
-      Status
-      <select name="status">
-        <option>Draft</option>
-        <option>In Review</option>
-        <option>Released</option>
-      </select>
-    </label>
-    <button class="primary" type="submit">Create Academic Report</button>
-  </form>
 </section>
 
 <section class="panel">
@@ -111,6 +92,45 @@ include __DIR__ . '/../includes/topbar.php';
       if (!window.RegistrarModal) return;
       window.RegistrarModal.open({ title, body, onSubmit, submitText, submitClass });
     };
+
+    const createButton = document.querySelector('.js-acr-create');
+    if (createButton) {
+      createButton.addEventListener('click', () => {
+        const body = `
+          <div class="modal-error" style="display:none"></div>
+          <form class="form-grid" id="acr-create-form">
+            <label>Report Title<input name="title" type="text" required /></label>
+            <label>Coverage<input name="coverage" type="text" placeholder="AY 2025-2026" required /></label>
+            <label>Status<select name="status">${statusOptions('Draft')}</select></label>
+          </form>
+        `;
+
+        openModal(
+          'Create Academic Report',
+          body,
+          async ({ modal, close, submit }) => {
+            const errorBox = modal.querySelector('.modal-error');
+            const form = modal.querySelector('#acr-create-form');
+            try {
+              submit.disabled = true;
+              const fd = new FormData(form);
+              fd.set('action', 'create');
+              await window.RegistrarApi.post(`${BASE_URL}/api/academic_reports.php`, fd);
+              close();
+              window.location.reload();
+            } catch (e) {
+              submit.disabled = false;
+              if (errorBox) {
+                errorBox.style.display = '';
+                errorBox.textContent = e.message || 'Request failed.';
+              }
+            }
+          },
+          'Create Report',
+          'primary'
+        );
+      });
+    }
 
     document.querySelectorAll('.js-acr-edit').forEach((btn) => {
       btn.addEventListener('click', () => {

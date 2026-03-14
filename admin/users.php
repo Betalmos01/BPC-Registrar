@@ -44,38 +44,10 @@ include __DIR__ . '/../includes/topbar.php';
       <h2>User Management</h2>
       <p>Create the right access structure first so every registrar action downstream stays attributable and secure.</p>
     </div>
+    <div class="panel-actions">
+      <button class="primary btn-sm js-user-create" type="button">Add User</button>
+    </div>
   </div>
-
-  <form class="form-grid" method="post" action="<?php echo BASE_URL; ?>/api/users.php">
-    <input type="hidden" name="action" value="create" />
-    <input type="hidden" name="redirect" value="<?php echo BASE_URL; ?>/admin/users.php" />
-    <label>
-      First Name
-      <input type="text" name="first_name" required />
-    </label>
-    <label>
-      Last Name
-      <input type="text" name="last_name" required />
-    </label>
-    <label>
-      Email / Username
-      <input type="text" name="username" required />
-    </label>
-    <label>
-      Role
-      <select name="role_id" required>
-        <option value="">Select role</option>
-        <?php foreach ($roles as $role): ?>
-          <option value="<?php echo (int)$role['id']; ?>"><?php echo e($role['name']); ?></option>
-        <?php endforeach; ?>
-      </select>
-    </label>
-    <label>
-      Password
-      <input type="password" name="password" required />
-    </label>
-    <button class="primary" type="submit">Add User</button>
-  </form>
 </section>
 
 <section class="panel">
@@ -171,6 +143,52 @@ include __DIR__ . '/../includes/topbar.php';
       if (!window.RegistrarModal) return;
       window.RegistrarModal.open({ title, body, onSubmit, submitText, submitClass });
     };
+
+    const createButton = document.querySelector('.js-user-create');
+    if (createButton) {
+      createButton.addEventListener('click', () => {
+        const body = `
+          <div class="modal-error" style="display:none"></div>
+          <form class="form-grid" id="user-create-form">
+            <label>First Name<input name="first_name" type="text" required /></label>
+            <label>Last Name<input name="last_name" type="text" required /></label>
+            <label>Email / Username<input name="username" type="text" required /></label>
+            <label>Role
+              <select name="role_id" required>
+                <option value="">Select role</option>
+                ${roleOptions('')}
+              </select>
+            </label>
+            <label>Password<input name="password" type="password" required /></label>
+          </form>
+        `;
+
+        openModal(
+          'Add User',
+          body,
+          async ({ modal, close, submit }) => {
+            const errorBox = modal.querySelector('.modal-error');
+            const form = modal.querySelector('#user-create-form');
+            try {
+              submit.disabled = true;
+              const fd = new FormData(form);
+              fd.set('action', 'create');
+              await window.RegistrarApi.post(`${BASE_URL}/api/users.php`, fd);
+              close();
+              window.location.reload();
+            } catch (e) {
+              submit.disabled = false;
+              if (errorBox) {
+                errorBox.style.display = '';
+                errorBox.textContent = e.message || 'Request failed.';
+              }
+            }
+          },
+          'Create User',
+          'primary'
+        );
+      });
+    }
 
     document.querySelectorAll('.js-user-edit').forEach((btn) => {
       btn.addEventListener('click', () => {

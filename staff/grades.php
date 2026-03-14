@@ -45,39 +45,10 @@ include __DIR__ . '/../includes/topbar.php';
       <h2>Record Grades</h2>
       <p>Finalize academic outcomes only for students with completed enrollment and class history in the registrar workflow.</p>
     </div>
+    <div class="panel-actions">
+      <button class="primary btn-sm js-grade-create" type="button">Add Grade</button>
+    </div>
   </div>
-
-  <form class="form-grid" method="post" action="<?php echo BASE_URL; ?>/api/grades.php">
-    <input type="hidden" name="action" value="create" />
-    <input type="hidden" name="redirect" value="<?php echo BASE_URL; ?>/staff/grades.php" />
-    <label>
-      Student
-      <select name="student_id" required>
-        <option value="">Select student</option>
-        <?php foreach ($students as $student): ?>
-          <option value="<?php echo $student['id']; ?>"><?php echo e($student['student_no'] . ' - ' . $student['last_name'] . ', ' . $student['first_name']); ?></option>
-        <?php endforeach; ?>
-      </select>
-    </label>
-    <label>
-      Class
-      <select name="class_id" required>
-        <option value="">Select class</option>
-        <?php foreach ($classes as $class): ?>
-          <option value="<?php echo $class['id']; ?>"><?php echo e($class['class_code'] . ' - ' . $class['title']); ?></option>
-        <?php endforeach; ?>
-      </select>
-    </label>
-    <label>
-      Grade
-      <input type="text" name="grade" placeholder="1.00 / A / 95" required />
-    </label>
-    <label>
-      Remarks
-      <input type="text" name="remarks" placeholder="Passed" />
-    </label>
-    <button class="primary" type="submit">Submit Grade</button>
-  </form>
 </section>
 
 <section class="panel">
@@ -136,6 +107,8 @@ include __DIR__ . '/../includes/topbar.php';
 <script>
   (() => {
     const BASE_URL = <?php echo json_encode(BASE_URL); ?>;
+    const students = <?php echo json_encode($students); ?>;
+    const classes = <?php echo json_encode($classes); ?>;
     const escapeHtml = (value) =>
       String(value || '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -143,6 +116,59 @@ include __DIR__ . '/../includes/topbar.php';
       if (!window.RegistrarModal) return;
       window.RegistrarModal.open({ title, body, onSubmit, submitText, submitClass });
     };
+
+    const optionList = (items, labelFn) =>
+      (items || []).map((item) => `<option value="${item.id}">${escapeHtml(labelFn(item))}</option>`).join('');
+
+    const createButton = document.querySelector('.js-grade-create');
+    if (createButton) {
+      createButton.addEventListener('click', () => {
+        const body = `
+          <div class="modal-error" style="display:none"></div>
+          <form class="form-grid" id="grade-create-form">
+            <label>Student
+              <select name="student_id" required>
+                <option value="">Select student</option>
+                ${optionList(students, (s) => `${s.student_no} - ${s.last_name}, ${s.first_name}`)}
+              </select>
+            </label>
+            <label>Class
+              <select name="class_id" required>
+                <option value="">Select class</option>
+                ${optionList(classes, (c) => `${c.class_code} - ${c.title}`)}
+              </select>
+            </label>
+            <label>Grade<input name="grade" type="text" placeholder="1.00 / A / 95" required /></label>
+            <label>Remarks<input name="remarks" type="text" placeholder="Passed" /></label>
+          </form>
+        `;
+
+        openModal(
+          'Add Grade',
+          body,
+          async ({ modal, close, submit }) => {
+            const errorBox = modal.querySelector('.modal-error');
+            const form = modal.querySelector('#grade-create-form');
+            try {
+              submit.disabled = true;
+              const fd = new FormData(form);
+              fd.set('action', 'create');
+              await window.RegistrarApi.post(`${BASE_URL}/api/grades.php`, fd);
+              close();
+              window.location.reload();
+            } catch (e) {
+              submit.disabled = false;
+              if (errorBox) {
+                errorBox.style.display = '';
+                errorBox.textContent = e.message || 'Request failed.';
+              }
+            }
+          },
+          'Create Grade',
+          'primary'
+        );
+      });
+    }
 
     document.querySelectorAll('.js-grade-edit').forEach((btn) => {
       btn.addEventListener('click', () => {

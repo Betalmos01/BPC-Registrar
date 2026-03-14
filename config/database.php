@@ -33,6 +33,60 @@ function ensure_schema(PDO $pdo): void
     }
 }
 
+function ensure_seed_data(PDO $pdo): void
+{
+    try {
+        $roleCount = (int)$pdo->query('SELECT COUNT(*) FROM roles')->fetchColumn();
+        if ($roleCount === 0) {
+            $pdo->exec("INSERT INTO roles (name) VALUES ('Administrator'), ('Registrar Staff')");
+        }
+
+        $userCount = (int)$pdo->query('SELECT COUNT(*) FROM users')->fetchColumn();
+        if ($userCount === 0) {
+            $adminId = (int)$pdo->query("SELECT id FROM roles WHERE name = 'Administrator'")->fetchColumn();
+            $staffId = (int)$pdo->query("SELECT id FROM roles WHERE name = 'Registrar Staff'")->fetchColumn();
+            if ($adminId && $staffId) {
+                $hash = '$2y$10$tB00KeauThyVvcbvDRqHoeA3BO8aPPCMm.B/WxnqzOhKtns1uHl7O';
+                $stmt = $pdo->prepare('INSERT INTO users (role_id, username, password_hash, first_name, last_name, is_active, created_at) VALUES (:role_id, :username, :password_hash, :first_name, :last_name, 1, NOW())');
+                $stmt->execute([
+                    'role_id' => $adminId,
+                    'username' => 'adminaccount@gmail.com',
+                    'password_hash' => $hash,
+                    'first_name' => 'Admin',
+                    'last_name' => 'Account',
+                ]);
+                $stmt->execute([
+                    'role_id' => $staffId,
+                    'username' => 'staffaccount@gmail.com',
+                    'password_hash' => $hash,
+                    'first_name' => 'Staff',
+                    'last_name' => 'Account',
+                ]);
+            }
+        }
+    } catch (Throwable $e) {
+        return;
+    }
+
+    try {
+        $needsSeed = false;
+        foreach (['students', 'instructors', 'classes'] as $table) {
+            $count = (int)$pdo->query("SELECT COUNT(*) FROM {$table}")->fetchColumn();
+            if ($count === 0) {
+                $needsSeed = true;
+                break;
+            }
+        }
+
+        if ($needsSeed) {
+            require_once __DIR__ . '/../database/seed_demo.php';
+            seed_demo_data($pdo);
+        }
+    } catch (Throwable $e) {
+        // Non-blocking: skip seeding if any query fails.
+    }
+}
+
 function db(): PDO
 {
     static $pdo;
@@ -65,5 +119,6 @@ function db(): PDO
     }
 
     ensure_schema($pdo);
+    ensure_seed_data($pdo);
     return $pdo;
 }

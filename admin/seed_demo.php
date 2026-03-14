@@ -20,10 +20,13 @@ try {
     }
     $message = $parts ? 'Demo data seeded (' . implode(', ', $parts) . ').' : 'Demo data already present. No changes made.';
     set_flash($message, 'success');
+    $user = current_user();
+    if ($user && isset($user['id'])) {
+        log_action((int)$user['id'], 'Seed', 'System', $message);
+    }
 } catch (Throwable $e) {
     set_flash('Unable to seed demo data.', 'error');
 }
 
 header('Location: ' . BASE_URL . '/admin/settings.php');
 exit;
-

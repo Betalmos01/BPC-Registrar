@@ -1,6 +1,6 @@
 {
-  "/(protected)/admin/users/page": "app/(protected)/admin/users/page.js",
   "/(protected)/staff/students/page": "app/(protected)/staff/students/page.js",
+  "/(protected)/admin/users/page": "app/(protected)/admin/users/page.js",
   "/(protected)/admin/dashboard/page": "app/(protected)/admin/dashboard/page.js",
   "/(protected)/staff/instructors/page": "app/(protected)/staff/instructors/page.js",
   "/(protected)/admin/reports/page": "app/(protected)/admin/reports/page.js"

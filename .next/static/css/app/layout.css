@@ -170,33 +170,6 @@ code { background: #eef4ff; padding: 2px 6px; border-radius: 8px; }
   flex-direction: column;
   min-height: 0;
 }
-.sidebar-topbar {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 16px;
-}
-.sidebar-toggle {
-  width: 40px;
-  height: 40px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 14px;
-  background: rgba(255,255,255,0.08);
-  color: #dce6fb;
-  cursor: pointer;
-  transition: background .2s ease, border-color .2s ease, transform .2s ease;
-}
-.sidebar-toggle:hover {
-  background: rgba(255,255,255,0.14);
-  border-color: rgba(255,255,255,0.2);
-  transform: translateY(-1px);
-}
-.sidebar-toggle svg {
-  width: 18px;
-  height: 18px;
-}
 .sidebar-nav {
   flex: 1 1;
   min-height: 0;
@@ -286,9 +259,6 @@ code { background: #eef4ff; padding: 2px 6px; border-radius: 8px; }
 }
 .sidebar-collapsed .sidebar {
   padding-inline: 12px;
-}
-.sidebar-collapsed .sidebar-topbar {
-  justify-content: center;
 }
 .sidebar-collapsed .brand {
   justify-content: center;

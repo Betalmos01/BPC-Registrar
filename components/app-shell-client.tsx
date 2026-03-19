@@ -56,16 +56,6 @@ function NavIcon({ icon }: { icon: string }) {
   }
 }
 
-function HamburgerIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M4 7h16" />
-      <path d="M4 12h16" />
-      <path d="M4 17h16" />
-    </svg>
-  );
-}
-
 export function AppShellClient({
   user,
   title,
@@ -89,18 +79,6 @@ export function AppShellClient({
     <div className={`app-shell ${sidebarCollapsed ? "sidebar-collapsed" : ""}`}>
       <aside className="sidebar">
         <div className="sidebar-inner">
-          <div className="sidebar-topbar">
-            <button
-              className="sidebar-toggle"
-              type="button"
-              onClick={() => setSidebarCollapsed((value) => !value)}
-              aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-              aria-expanded={!sidebarCollapsed}
-            >
-              <HamburgerIcon />
-            </button>
-          </div>
-
           <div className="brand">
             <Image className="brand-logo" src={logo} alt="Bestlink College of the Philippines Registrar logo" priority />
             <div className="brand-copy">

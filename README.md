@@ -61,6 +61,13 @@ npm run dev
 
 App URL: `http://localhost:3000`
 
+## Default accounts
+
+Use these built-in bypass accounts for local testing:
+
+- Admin: `admin@gmail.com` / `admin123`
+- Staff: `staff@gmail.com` / `admin123`
+
 ## Notes
 
 - This is the real TypeScript app translation path, not just a backend service.

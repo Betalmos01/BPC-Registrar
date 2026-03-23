@@ -8,6 +8,8 @@ const legacyRedirects: Record<string, string> = {
   "/access_denied.php": "/access-denied",
   "/auth/login.php": "/",
   "/auth/logout.php": "/",
+  "/admin/login": "/",
+  "/admin/login.php": "/",
   "/admin/dashboard.php": "/admin/dashboard",
   "/admin/users.php": "/admin/users",
   "/admin/reports.php": "/admin/reports",

@@ -177,6 +177,14 @@ async function getRolesTable() {
   return resolveTableName("registrar_roles", "roles");
 }
 
+async function safeCount(promise: Promise<number | null>): Promise<number> {
+  try {
+    return Number((await promise) ?? 0);
+  } catch {
+    return 0;
+  }
+}
+
 export async function getDashboardStats() {
   const reportsTable = await resolveTableName("reports", "registrar_reports");
   const documentsTable = await resolveTableName("documents", "registrar_documents");
@@ -186,23 +194,23 @@ export async function getDashboardStats() {
   const classesTable = await getClassesTable();
   const enrollmentsTable = await getEnrollmentsTable();
   const [reports, documents, grades, auditLogs, students, classes, enrollments] = await Promise.all([
-    reportsTable ? queryValue<number>(`select count(*) from ${reportsTable}`) : Promise.resolve(0),
-    documentsTable ? queryValue<number>(`select count(*) from ${documentsTable} where status = 'Pending'`) : Promise.resolve(0),
-    gradesTable ? queryValue<number>(`select count(*) from ${gradesTable}`) : Promise.resolve(0),
-    auditLogsTable ? queryValue<number>(`select count(*) from ${auditLogsTable}`) : Promise.resolve(0),
-    studentsTable ? queryValue<number>(`select count(*) from ${studentsTable}`) : Promise.resolve(0),
-    classesTable ? queryValue<number>(`select count(*) from ${classesTable}`) : Promise.resolve(0),
-    enrollmentsTable ? queryValue<number>(`select count(*) from ${enrollmentsTable}`) : Promise.resolve(0)
+    reportsTable ? safeCount(queryValue<number>(`select count(*) from ${reportsTable}`)) : Promise.resolve(0),
+    documentsTable ? safeCount(queryValue<number>(`select count(*) from ${documentsTable} where status = 'Pending'`)) : Promise.resolve(0),
+    gradesTable ? safeCount(queryValue<number>(`select count(*) from ${gradesTable}`)) : Promise.resolve(0),
+    auditLogsTable ? safeCount(queryValue<number>(`select count(*) from ${auditLogsTable}`)) : Promise.resolve(0),
+    studentsTable ? safeCount(queryValue<number>(`select count(*) from ${studentsTable}`)) : Promise.resolve(0),
+    classesTable ? safeCount(queryValue<number>(`select count(*) from ${classesTable}`)) : Promise.resolve(0),
+    enrollmentsTable ? safeCount(queryValue<number>(`select count(*) from ${enrollmentsTable}`)) : Promise.resolve(0)
   ]);
 
   return {
-    reports: Number(reports ?? 0),
-    pendingDocuments: Number(documents ?? 0),
-    grades: Number(grades ?? 0),
-    auditLogs: Number(auditLogs ?? 0),
-    students: Number(students ?? 0),
-    classes: Number(classes ?? 0),
-    enrollments: Number(enrollments ?? 0)
+    reports,
+    pendingDocuments: documents,
+    grades,
+    auditLogs,
+    students,
+    classes,
+    enrollments
   };
 }
 
@@ -1060,7 +1068,16 @@ export async function listReports() {
     return [];
   }
 
-  return query(`select * from ${reportsTable} order by created_at desc`);
+  let orderBy = "created_at desc";
+  if (!(await hasColumn(reportsTable, "created_at"))) {
+    orderBy = (await hasColumn(reportsTable, "id")) ? "id desc" : "1";
+  }
+
+  try {
+    return await query(`select * from ${reportsTable} order by ${orderBy}`);
+  } catch {
+    return [];
+  }
 }
 
 export async function getReportMetrics() {
@@ -1141,21 +1158,44 @@ export async function listNotifications(limit = 6) {
     return [];
   }
 
-  return query(
-    `select id, title, message, status, created_at
-     from ${notificationsTable}
-     order by created_at desc
-     limit $1`,
-    [limit]
-  );
+  const hasCreated = await hasColumn(notificationsTable, "created_at");
+  const orderCol = hasCreated
+    ? "created_at"
+    : (await hasColumn(notificationsTable, "id"))
+      ? "id"
+      : null;
+  if (!orderCol) {
+    return [];
+  }
+
+  const createdExpr = hasCreated ? "created_at" : "null::timestamptz";
+
+  try {
+    return await query(
+      `select id, title, message, status, ${createdExpr} as created_at
+       from ${notificationsTable}
+       order by ${orderCol} desc
+       limit $1`,
+      [limit]
+    );
+  } catch {
+    return [];
+  }
 }
 
 export async function getUnreadNotificationCount() {
   const notificationsTable = await getNotificationsTable();
-  const count = notificationsTable
-    ? await queryValue<number>(`select count(*) from ${notificationsTable} where status = 'Unread'`)
-    : 0;
-  return Number(count ?? 0);
+  if (!notificationsTable) {
+    return 0;
+  }
+  try {
+    const count = await queryValue<number>(
+      `select count(*) from ${notificationsTable} where status = 'Unread'`
+    );
+    return Number(count ?? 0);
+  } catch {
+    return 0;
+  }
 }
 
 export async function listIntegrationRecords(filters?: { recordType?: string; studentNo?: string; limit?: number }) {

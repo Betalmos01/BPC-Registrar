@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { DataTable } from "@/components/data-table";
 import { IntegrationSendPanel } from "@/components/integration-send-panel";
@@ -46,6 +47,15 @@ export default async function IntegrationsPage() {
       title="Office Integrations"
       description="Manage registrar-to-department connections through the shared Supabase department flow registry."
     >
+      <SectionCard
+        title="HR staffing"
+        description="Submit hiring requests to HR for Registrar roles and track request status."
+      >
+        <Link href="/admin/integrations/hr-staff-request" className="primary inline-button" style={{ textDecoration: "none" }}>
+          Request Staff from HR
+        </Link>
+      </SectionCard>
+
       <StatsGrid
         stats={[
           {

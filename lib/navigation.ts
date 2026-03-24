@@ -30,6 +30,7 @@ export function getNavigation(role: string): Array<{ section: string; items: Nav
           { label: "Staff Directory", href: "/staff/staff-directory", icon: "directory" },
           { label: "Academic Reports", href: "/admin/academic-reports", icon: "academic" },
           { label: "Office Integrations", href: "/admin/integrations", icon: "reports" },
+          { label: "Request Staff from HR", href: "/admin/integrations/hr-staff-request", icon: "hr-request" },
           { label: "System Logs", href: "/admin/activity", icon: "logs" }
         ]
       },

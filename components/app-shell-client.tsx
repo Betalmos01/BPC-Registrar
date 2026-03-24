@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useEffect, useMemo, useState } from "react";
 import logo from "@/lib/Logo/logo.png";
 import { ShellTopbar } from "@/components/shell-topbar";
 import type { SessionUser } from "@/lib/session";
@@ -11,8 +11,15 @@ import type { NavItem } from "@/lib/navigation";
 
 type NavSection = { section: string; items: NavItem[] };
 
-function isActiveRoute(pathname: string, href: string) {
-  return pathname === href || pathname.startsWith(`${href}/`);
+function isActiveRoute(pathname: string, href: string, allHrefs: readonly string[]) {
+  if (pathname === href) return true;
+  if (!pathname.startsWith(`${href}/`)) return false;
+  return !allHrefs.some(
+    (other) =>
+      other !== href &&
+      other.startsWith(`${href}/`) &&
+      (pathname === other || pathname.startsWith(`${other}/`))
+  );
 }
 
 function NavIcon({ icon }: { icon: string }) {
@@ -32,6 +39,8 @@ function NavIcon({ icon }: { icon: string }) {
     case "users":
     case "directory":
       return <svg {...common}><path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2" /><circle cx="9.5" cy="7" r="3.5" /><path d="M20 8v6" /><path d="M17 11h6" /></svg>;
+    case "hr-request":
+      return <svg {...common}><path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="3.5" /><path d="M20 8v6" /><path d="M23 11h-6" /></svg>;
     case "students":
       return <svg {...common}><path d="M12 4 3 8l9 4 9-4-9-4Z" /><path d="M7 10.5V15c0 1.7 2.2 3 5 3s5-1.3 5-3v-4.5" /></svg>;
     case "faculty":
@@ -83,6 +92,7 @@ export function AppShellClient({
   successMessage: string;
 }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const navHrefs = useMemo(() => nav.flatMap((s) => s.items.map((i) => i.href)), [nav]);
   const [flashMessage, setFlashMessage] = useState(successMessage);
   const pathname = usePathname();
 
@@ -114,9 +124,9 @@ export function AppShellClient({
                     <Link
                       key={item.href}
                       href={item.href}
-                      className={`nav-link ${isActiveRoute(pathname, item.href) ? "active" : ""}`}
+                      className={`nav-link ${isActiveRoute(pathname, item.href, navHrefs) ? "active" : ""}`}
                       title={item.label}
-                      aria-current={isActiveRoute(pathname, item.href) ? "page" : undefined}
+                      aria-current={isActiveRoute(pathname, item.href, navHrefs) ? "page" : undefined}
                     >
                       <span className="nav-icon"><NavIcon icon={item.icon} /></span>
                       <span className="nav-link-label">{item.label}</span>

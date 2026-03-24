@@ -1,6 +1,6 @@
-"use server";
-
 import { revalidatePath } from "next/cache";
+import { AppShell } from "@/components/app-shell";
+import { requireRole } from "@/lib/auth";
 import { getHrStaffRequestStatus, getHrStaffRequests, createHrStaffRequest, type RegistrarRoleType } from "@/lib/hr-staff-requests";
 import HrStaffRequestClient from "./HrStaffRequestClient";
 
@@ -11,6 +11,7 @@ interface PageProps {
 }
 
 export default async function HrStaffRequestPage({ searchParams }: PageProps) {
+  const user = await requireRole("Administrator");
   const sp = await (searchParams ?? Promise.resolve({}));
   const search = sp.search ?? "";
   const status = sp.status ?? "all";
@@ -32,14 +33,20 @@ export default async function HrStaffRequestPage({ searchParams }: PageProps) {
   }
 
   return (
-    <HrStaffRequestClient
-      statusData={statusData}
-      requests={pagedResult.items}
-      total={pagedResult.total}
-      currentPage={page}
-      currentSearch={search}
-      currentStatus={status}
-      createAction={handleCreate}
-    />
+    <AppShell
+      user={user}
+      title="Request Staff from HR"
+      description="Submit staffing requests to HR and track approval status for Registrar roles."
+    >
+      <HrStaffRequestClient
+        statusData={statusData}
+        requests={pagedResult.items}
+        total={pagedResult.total}
+        currentPage={page}
+        currentSearch={search}
+        currentStatus={status}
+        createAction={handleCreate}
+      />
+    </AppShell>
   );
 }

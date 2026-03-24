@@ -17,9 +17,9 @@ export async function AppShell({
 }) {
   const nav = getNavigation(user.role);
   const [notifications, unreadCount, successMessage] = await Promise.all([
-    listNotifications(),
-    getUnreadNotificationCount(),
-    getSuccessFlash()
+    listNotifications().catch(() => []),
+    getUnreadNotificationCount().catch(() => 0),
+    getSuccessFlash().catch(() => "")
   ]);
 
   return (
